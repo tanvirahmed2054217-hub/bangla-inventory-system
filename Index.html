@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>বাংলা দোকান ইনভেন্টরি সিস্টেম</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        header { background: linear-gradient(135deg, #1a237e 0%, #311b92 100%); color: white; padding: 30px; text-align: center; }
+        .tabs { display: flex; background: #f5f5f5; border-bottom: 2px solid #ddd; }
+        .tab { padding: 20px 30px; cursor: pointer; font-weight: 600; color: #555; border-right: 1px solid #ddd; }
+        .tab.active { background: white; color: #1a237e; border-bottom: 3px solid #1a237e; }
+        .tab-content { padding: 30px; display: none; }
+        .tab-content.active { display: block; }
+        .btn { padding: 12px 24px; background: #1a237e; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #f8f9fa; }
+        input, select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; width: 100%; margin: 5px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏬 বাংলা দোকান ইনভেন্টরি সিস্টেম</h1>
+            <p>পণ্য, গ্রাহক ও বিক্রয় ব্যবস্থাপনা - সম্পূর্ণ বাংলায়</p>
+        </header>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('products')">📦 পণ্য</div>
+            <div class="tab" onclick="showTab('customers')">👥 গ্রাহক</div>
+            <div class="tab" onclick="showTab('sales')">💰 বিক্রয়</div>
+            <div class="tab" onclick="showTab('memo')">🧾 মেমো</div>
+        </div>
+        
+        <div id="products" class="tab-content active">
+            <h2>পণ্য ব্যবস্থাপনা</h2>
+            <button class="btn" onclick="addProduct()">➕ নতুন পণ্য</button>
+            <table>
+                <thead>
+                    <tr><th>নাম</th><th>দাম</th><th>স্টক</th><th>কার্যক্রম</th></tr>
+                </thead>
+                <tbody id="productList"></tbody>
+            </table>
+        </div>
+        
+        <div id="customers" class="tab-content">
+            <h2>গ্রাহক ব্যবস্থাপনা</h2>
+            <button class="btn" onclick="addCustomer()">➕ নতুন গ্রাহক</button>
+            <table>
+                <thead>
+                    <tr><th>নাম</th><th>মোবাইল</th><th>ঠিকানা</th><th>কার্যক্রম</th></tr>
+                </thead>
+                <tbody id="customerList"></tbody>
+            </table>
+        </div>
+        
+        <div id="sales" class="tab-content">
+            <h2>বিক্রয় ব্যবস্থাপনা</h2>
+            <button class="btn" onclick="addSale()">➕ নতুন বিক্রয়</button>
+            <table>
+                <thead>
+                    <tr><th>তারিখ</th><th>গ্রাহক</th><th>মোট</th><th>কার্যক্রম</th></tr>
+                </thead>
+                <tbody id="saleList"></tbody>
+            </table>
+        </div>
+        
+        <div id="memo" class="tab-content">
+            <h2>বিক্রয় মেমো</h2>
+            <div style="margin: 20px 0;">
+                <input type="text" id="memoCustomer" placeholder="গ্রাহকের নাম" style="padding: 10px; width: 300px;">
+                <input type="text" id="memoPhone" placeholder="মোবাইল" style="padding: 10px; width: 200px;">
+            </div>
+            <div style="margin: 20px 0;">
+                <input type="text" id="itemName" placeholder="পণ্যের নাম" style="padding: 10px;">
+                <input type="number" id="itemQty" placeholder="পরিমাণ" value="1" style="padding: 10px; width: 100px;">
+                <input type="number" id="itemPrice" placeholder="দর" style="padding: 10px; width: 150px;">
+                <button class="btn" onclick="addToMemo()">যোগ করুন</button>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>পণ্য</th><th>পরিমাণ</th><th>দর</th><th>মোট</th><th>কার্যক্রম</th></tr>
+                </thead>
+                <tbody id="memoList"></tbody>
+            </table>
+            <div style="text-align: right; margin-top: 20px;">
+                <h3>মোট: ৳<span id="totalAmount">0</span></h3>
+                <button class="btn" onclick="printMemo()">🖨️ প্রিন্ট করুন</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data storage
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+        let customers = JSON.parse(localStorage.getItem('customers')) || [];
+        let sales = JSON.parse(localStorage.getItem('sales')) || [];
+        let memoItems = [];
+        
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            if(tabName === 'products') loadProducts();
+            if(tabName === 'customers') loadCustomers();
+            if(tabName === 'sales') loadSales();
+            if(tabName === 'memo') loadMemo();
+        }
+        
+        function addProduct() {
+            const name = prompt('পণ্যের নাম:');
+            const price = prompt('দাম (৳):');
+            if(name && price) {
+                products.push({id: Date.now(), name, price, stock: 0});
+                localStorage.setItem('products', JSON.stringify(products));
+                loadProducts();
+                alert('পণ্য যোগ করা হয়েছে!');
+            }
+        }
+        
+        function loadProducts() {
+            const tbody = document.getElementById('productList');
+            tbody.innerHTML = '';
+            products.forEach(p => {
+                tbody.innerHTML += `<tr>
+                    <td>${p.name}</td><td>৳${p.price}</td><td>${p.stock}</td>
+                    <td><button class="btn" onclick="deleteProduct(${p.id})" style="background:#c62828;">মুছুন</button></td>
+                </tr>`;
+            });
+        }
+        
+        function deleteProduct(id) {
+            products = products.filter(p => p.id !== id);
+            localStorage.setItem('products', JSON.stringify(products));
+            loadProducts();
+        }
+        
+        function addCustomer() {
+            const name = prompt('গ্রাহকের নাম:');
+            const phone = prompt('মোবাইল:');
+            if(name && phone) {
+                customers.push({id: Date.now(), name, phone, address: ''});
+                localStorage.setItem('customers', JSON.stringify(customers));
+                loadCustomers();
+                alert('গ্রাহক যোগ করা হয়েছে!');
+            }
+        }
+        
+        function loadCustomers() {
+            const tbody = document.getElementById('customerList');
+            tbody.innerHTML = '';
+            customers.forEach(c => {
+                tbody.innerHTML += `<tr>
+                    <td>${c.name}</td><td>${c.phone}</td><td>${c.address || '-'}</td>
+                    <td><button class="btn" onclick="deleteCustomer(${c.id})" style="background:#c62828;">মুছুন</button></td>
+                </tr>`;
+            });
+        }
+        
+        function deleteCustomer(id) {
+            customers = customers.filter(c => c.id !== id);
+            localStorage.setItem('customers', JSON.stringify(customers));
+            loadCustomers();
+        }
+        
+        function addSale() {
+            const amount = prompt('বিক্রয়ের পরিমাণ (৳):');
+            if(amount) {
+                sales.push({id: Date.now(), date: new Date().toLocaleDateString('bn-BD'), amount});
+                localStorage.setItem('sales', JSON.stringify(sales));
+                loadSales();
+                alert('বিক্রয় যোগ করা হয়েছে!');
+            }
+        }
+        
+        function loadSales() {
+            const tbody = document.getElementById('saleList');
+            tbody.innerHTML = '';
+            sales.forEach(s => {
+                tbody.innerHTML += `<tr>
+                    <td>${s.date}</td><td>গ্রাহক</td><td>৳${s.amount}</td>
+                    <td><button class="btn" onclick="deleteSale(${s.id})" style="background:#c62828;">মুছুন</button></td>
+                </tr>`;
+            });
+        }
+        
+        function deleteSale(id) {
+            sales = sales.filter(s => s.id !== id);
+            localStorage.setItem('sales', JSON.stringify(sales));
+            loadSales();
+        }
+        
+        function addToMemo() {
+            const name = document.getElementById('itemName').value;
+            const qty = parseInt(document.getElementById('itemQty').value);
+            const price = parseFloat(document.getElementById('itemPrice').value);
+            
+            if(!name || !qty || !price) {
+                alert('সব তথ্য দিন!');
+                return;
+            }
+            
+            memoItems.push({name, qty, price, total: qty * price});
+            loadMemo();
+            
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemQty').value = '1';
+            document.getElementById('itemPrice').value = '';
+        }
+        
+        function loadMemo() {
+            const tbody = document.getElementById('memoList');
+            tbody.innerHTML = '';
+            let total = 0;
+            
+            memoItems.forEach((item, index) => {
+                tbody.innerHTML += `<tr>
+                    <td>${item.name}</td><td>${item.qty}</td><td>৳${item.price}</td><td>৳${item.total}</td>
+                    <td><button class="btn" onclick="memoItems.splice(${index},1); loadMemo();" style="background:#c62828;">❌</button></td>
+                </tr>`;
+                total += item.total;
+            });
+            
+            document.getElementById('totalAmount').textContent = total;
+        }
+        
+        function printMemo() {
+            const customer = document.getElementById('memoCustomer').value || 'নতুন গ্রাহক';
+            const phone = document.getElementById('memoPhone').value || 'নাই';
+            const total = memoItems.reduce((sum, item) => sum + item.total, 0);
+            
+            let items = '';
+            memoItems.forEach((item, i) => {
+                items += `${i+1}. ${item.name} (${item.qty} x ৳${item.price}) = ৳${item.total}\n`;
+            });
+            
+            const memo = `
+==============================
+       বিক্রয় রসিদ
+==============================
+গ্রাহক: ${customer}
+মোবাইল: ${phone}
+তারিখ: ${new Date().toLocaleDateString('bn-BD')}
+==============================
+${items}
+==============================
+মোট টাকা: ৳${total}
+==============================
+ধন্যবাদান্তে
+বাংলা দোকান
+==============================
+`;
+            
+            alert('মেমো প্রস্তুত:\n\n' + memo);
+        }
+        
+        // Load initial data
+        loadProducts();
+        loadCustomers();
+        loadSales();
+    </script>
+</body>
+</html>
